@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=org.sailfishos.InariBlue1
+Exec=/usr/libexec/inari-blue-player
+SystemdService=inari-blue-player.service

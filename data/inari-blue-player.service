@@ -1,0 +1,14 @@
+[Unit]
+Description=Inari Blue pattern player
+After=dbus.service
+
+[Service]
+Type=dbus
+BusName=org.sailfishos.InariBlue1
+ExecStart=/usr/libexec/inari-blue-player
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=5
+
+[Install]
+WantedBy=user-session.target

@@ -1,0 +1,4 @@
+# Hardware access only. Activation/ownership is coordinated by the user service.
+access:
+  i2c-dev:
+    - /usr/libexec/inari-blue-player

@@ -27,7 +27,7 @@ private slots:
         const auto root = QDir::currentPath();
         server.setProgram(root + "/build/inari-blue-player");
         server.setArguments({"--simulate", "--patterns-dir", root + "/patterns",
-                             "--config-file", config.filePath("settings.json")});
+                             "--config-file", QDir(config.path()).filePath("settings.json")});
         server.start();
         QVERIFY(server.waitForStarted());
         QTRY_VERIFY(call(admin, "GetState").type() == QDBusMessage::ReplyMessage);

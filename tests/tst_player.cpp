@@ -44,7 +44,7 @@ QString PlayerTest::patternsPath() const
 Player *PlayerTest::player(QTemporaryDir *directory, const QString &configName)
 {
     return new Player(true, QStringList() << patternsPath(),
-                      directory->filePath(configName));
+                      QDir(directory->path()).filePath(configName));
 }
 
 QJsonObject PlayerTest::state(Player *player)
@@ -101,7 +101,7 @@ void PlayerTest::invalidAssignmentIsRejectedAndPreserved()
     std::unique_ptr<Player> testPlayer(player(&directory));
     QVERIFY(testPlayer->SetEnabled(true));
     QVERIFY(testPlayer->SetPattern("message", "steady"));
-    QFile file(directory.filePath("settings.json"));
+    QFile file(QDir(directory.path()).filePath("settings.json"));
     QVERIFY(file.open(QIODevice::ReadOnly));
     const QByteArray before = file.readAll();
     file.close();
@@ -173,7 +173,7 @@ void PlayerTest::malformedConfigIsPreserved()
 {
     QTemporaryDir directory;
     const QByteArray malformed("{\"enabled\":true,\"assignments\":");
-    QFile file(directory.filePath("settings.json"));
+    QFile file(QDir(directory.path()).filePath("settings.json"));
     QVERIFY(file.open(QIODevice::WriteOnly));
     QCOMPARE(file.write(malformed), qint64(malformed.size()));
     file.close();
@@ -188,7 +188,7 @@ void PlayerTest::malformedConfigIsPreserved()
 void PlayerTest::invalidPatternOverrideLeavesBundledPattern()
 {
     QTemporaryDir directory;
-    const QString userPatterns = directory.filePath("patterns");
+    const QString userPatterns = QDir(directory.path()).filePath("patterns");
     QVERIFY(QDir().mkpath(userPatterns));
     QFile overrideFile(QDir(userPatterns).filePath("steady.json"));
     QVERIFY(overrideFile.open(QIODevice::WriteOnly));
@@ -196,7 +196,7 @@ void PlayerTest::invalidPatternOverrideLeavesBundledPattern()
     overrideFile.close();
     std::unique_ptr<Player> testPlayer(new Player(true,
         QStringList() << patternsPath() << userPatterns,
-        directory.filePath("settings.json")));
+        QDir(directory.path()).filePath("settings.json")));
     const auto patterns = state(testPlayer.get()).value("patterns").toArray();
     bool foundSteady = false;
     for (const auto &value : patterns)

@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "id": "breathing-cycle",
+  "name": "Breathing Cycle",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 1500,
+      "channels": [
+        {
+          "to": 255,
+          "fade_ms": 1500
+        },
+        {
+          "to": 255,
+          "fade_ms": 1000,
+          "delay_ms": 500
+        },
+        {
+          "to": 255,
+          "fade_ms": 500,
+          "delay_ms": 1000
+        }
+      ]
+    },
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        }
+      ]
+    },
+    {
+      "duration_ms": 1500,
+      "channels": [
+        {
+          "to": 0,
+          "fade_ms": 500
+        },
+        {
+          "to": 0,
+          "fade_ms": 1000
+        },
+        {
+          "to": 0,
+          "fade_ms": 1500
+        }
+      ]
+    },
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        }
+      ]
+    }
+  ]
+}

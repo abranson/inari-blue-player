@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "kitt-swoosh",
+  "name": "KITT Swoosh",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 255
+        },
+        {
+          "to": 0,
+          "fade_ms": 100
+        },
+        {
+          "to": 0
+        }
+      ]
+    },
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 0,
+          "fade_ms": 100
+        },
+        {
+          "to": 255
+        },
+        {
+          "to": 0
+        }
+      ]
+    },
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 0,
+          "fade_ms": 100
+        },
+        {
+          "to": 255
+        }
+      ]
+    },
+    {
+      "duration_ms": 250,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 255
+        },
+        {
+          "to": 0,
+          "fade_ms": 100
+        }
+      ]
+    }
+  ]
+}

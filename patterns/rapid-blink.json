@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "id": "rapid-blink",
+  "name": "Rapid Blink",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 31.25,
+      "channels": [
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        }
+      ]
+    },
+    {
+      "duration_ms": 31.25,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        }
+      ]
+    }
+  ]
+}

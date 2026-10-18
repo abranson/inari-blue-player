@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "id": "gentle-glow",
+  "name": "Gentle Glow",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 1500,
+      "channels": [
+        {
+          "to": 64,
+          "fade_ms": 1500
+        },
+        {
+          "to": 64,
+          "fade_ms": 1500
+        },
+        {
+          "to": 64,
+          "fade_ms": 1500
+        }
+      ]
+    },
+    {
+      "duration_ms": 500,
+      "channels": [
+        {
+          "to": 64
+        },
+        {
+          "to": 64
+        },
+        {
+          "to": 64
+        }
+      ]
+    },
+    {
+      "duration_ms": 1500,
+      "channels": [
+        {
+          "to": 0,
+          "fade_ms": 1500
+        },
+        {
+          "to": 0,
+          "fade_ms": 1500
+        },
+        {
+          "to": 0,
+          "fade_ms": 1500
+        }
+      ]
+    },
+    {
+      "duration_ms": 2000,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        }
+      ]
+    }
+  ]
+}

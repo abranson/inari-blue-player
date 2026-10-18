@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "off",
+  "name": "Off",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 1000,
+      "channels": [
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        },
+        {
+          "to": 0
+        }
+      ]
+    }
+  ]
+}

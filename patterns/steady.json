@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "id": "steady",
+  "name": "Steady light",
+  "repeat": 0,
+  "steps": [
+    {
+      "duration_ms": 1000,
+      "channels": [
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        },
+        {
+          "to": 255
+        }
+      ]
+    }
+  ]
+}

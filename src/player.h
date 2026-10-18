@@ -22,6 +22,9 @@ public slots:
     bool SetEnabled(bool enabled);
     bool SetPattern(const QString &category, const QString &id);
     bool Preview(const QString &id, uint durationMs);
+    QString InspectPatternFile(const QString &path);
+    bool PreviewFile(const QString &path, uint durationMs);
+    bool SetPatternFile(const QString &category, const QString &path);
     void StopPreview();
     bool StartEvent(uint cookie, const QString &category);
     void StopEvent(uint cookie);
@@ -34,6 +37,10 @@ private:
     QString caller() const;
     QString eventKey(const QString &owner, uint cookie) const;
     bool save();
+    bool readPatternFile(const QString &path, Inari::Pattern *pattern, QByteArray *bytes, QString *error) const;
+    QString localPatternPath(const QString &path) const;
+    bool startPreview(const Inari::Pattern &pattern, uint durationMs, bool transient);
+    const Inari::Pattern *patternFor(const QString &id) const;
     void loadConfig();
     void select();
     void tick();
@@ -57,6 +64,8 @@ private:
     QTimer m_previewTimer;
     QElapsedTimer m_elapsed;
     QString m_previewId;
+    Inari::Pattern m_previewPattern;
+    bool m_previewTransient = false;
     QString m_previewOwner;
     QString m_selected;
     QString m_selectionKey;

@@ -8,6 +8,12 @@ Object: `/org/sailfishos/InariBlue1`.
 * `SetEnabled(b) -> b`: atomically save master setting; no service restart.
 * `SetPattern(s category, s patternId) -> b`: save selection, apply immediately.
 * `Preview(s patternId, u durationMs) -> b`: 100–10000 ms, caller-owned preview.
+* `InspectPatternFile(s path) -> s`: validate an absolute local pattern file (or
+  `file://` URL) and return JSON `{valid,name,error}` metadata.
+* `PreviewFile(s path, u durationMs) -> b`: preview a validated local pattern
+  file in memory; it does not add the file to the catalogue or save settings.
+* `SetPatternFile(s category, s path) -> b`: import a validated local pattern
+  into the user catalogue and assign it atomically.
 * `StopPreview()`: end only the calling connection's preview and resume automatic
   feedback. Preview also ends on timeout or caller disconnect.
 * `StartEvent(u cookie, s category) -> b`: register/replace caller's event.

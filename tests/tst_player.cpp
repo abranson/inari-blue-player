@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QCryptographicHash>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <memory>
@@ -25,6 +26,10 @@ private slots:
     void invalidPatternOverrideLeavesBundledPattern();
     void autonomousBreathingAndPreviewRestore();
     void repeatedAssignmentReplacementPreservesOtherCategories();
+    void invalidAndOversizeFileDoesNotWrite();
+    void transientFilePreviewSurvivesReloadWithoutCatalogOrEnablement();
+    void validFileImportAssignsAndCollisionIsPreserved();
+    void failedSettingsSaveRemovesNewImport();
 
 private:
     QString patternsPath() const;
@@ -40,6 +45,28 @@ QString PlayerTest::patternsPath() const
         return QDir::cleanPath(besideBinary);
     if (QDir("patterns").exists()) return QDir::current().absoluteFilePath("patterns");
     return "/usr/share/inari-blue/patterns";
+}
+
+static QByteArray testPattern(const QString &name = "Imported")
+{
+    QJsonArray channels;
+    channels.append(QJsonObject{{"to", 1}});
+    channels.append(QJsonObject{{"to", 2}});
+    channels.append(QJsonObject{{"to", 3}});
+    QJsonArray steps;
+    steps.append(QJsonObject{{"duration_ms", 1000}, {"channels", channels}});
+    return QJsonDocument(QJsonObject{{"version", 1}, {"id", "source"}, {"name", name},
+        {"repeat", 0}, {"steps", steps}}).toJson(QJsonDocument::Compact);
+}
+
+static QString writeTestFile(const QString &dir, const QString &name, const QByteArray &data)
+{
+    const QString path = QDir(dir).filePath(name);
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly)) return QString();
+    if (file.write(data) != data.size()) return QString();
+    file.close();
+    return path;
 }
 
 Player *PlayerTest::player(QTemporaryDir *directory, const QString &configName)
@@ -64,7 +91,6 @@ void PlayerTest::defaultStateIsDisabledAndOff()
     QCOMPARE(current.value("playing").toString(), QString());
     QCOMPARE(current.value("assignments").toObject().value("idle").toString(), QString("off"));
 }
-
 void PlayerTest::autonomousBreathingAndPreviewRestore()
 {
     QTemporaryDir directory;
@@ -217,6 +243,85 @@ void PlayerTest::invalidPatternOverrideLeavesBundledPattern()
     for (const auto &value : patterns)
         foundSteady = foundSteady || value.toObject().value("id").toString() == "steady";
     QVERIFY(foundSteady);
+}
+
+void PlayerTest::invalidAndOversizeFileDoesNotWrite()
+{
+    QTemporaryDir directory;
+    const QString user = QDir(directory.path()).filePath("patterns");
+    QVERIFY(QDir().mkpath(user));
+    const QString invalid = writeTestFile(directory.path(), "invalid.json", "{}");
+    std::unique_ptr<Player> inspection(player(&directory));
+    QCOMPARE(QJsonDocument::fromJson(inspection->InspectPatternFile(invalid).toUtf8()).object().value("valid").toBool(), false);
+    for (const QString &path : {QString("relative.json"), QString("https://example.invalid/pattern.json"),
+                                QString("file://remote.invalid/tmp/pattern.json"), directory.path()})
+        QVERIFY(!QJsonDocument::fromJson(inspection->InspectPatternFile(path).toUtf8()).object().value("valid").toBool());
+    const QString oversize = writeTestFile(directory.path(), "oversize.json", QByteArray(65537, 'x'));
+    std::unique_ptr<Player> testPlayer(new Player(true, QStringList() << patternsPath() << user,
+        QDir(directory.path()).filePath("settings.json")));
+    QVERIFY(!testPlayer->SetPatternFile("idle", invalid));
+    QVERIFY(!testPlayer->SetPatternFile("idle", oversize));
+    QCOMPARE(QDir(user).entryList(QStringList() << "*.json", QDir::Files).size(), 0);
+}
+
+void PlayerTest::transientFilePreviewSurvivesReloadWithoutCatalogOrEnablement()
+{
+    QTemporaryDir directory;
+    const QString source = writeTestFile(directory.path(), "source.json", testPattern().replace("\"source\"", "\"off\""));
+    std::unique_ptr<Player> testPlayer(player(&directory));
+    QVERIFY(testPlayer->PreviewFile(source, 500));
+    QVERIFY(!state(testPlayer.get()).value("enabled").toBool());
+    QVERIFY(state(testPlayer.get()).value("preview").toBool());
+    QCOMPARE(state(testPlayer.get()).value("patterns").toArray().size(), 12);
+    testPlayer->ReloadPatterns();
+    QVERIFY(state(testPlayer.get()).value("preview").toBool());
+    QCOMPARE(state(testPlayer.get()).value("playing").toString(), QString("preview-file"));
+    QVERIFY(!QFile::exists(QDir(directory.path()).filePath("settings.json")));
+    testPlayer->StopPreview();
+    QVERIFY(!state(testPlayer.get()).value("preview").toBool());
+}
+
+void PlayerTest::validFileImportAssignsAndCollisionIsPreserved()
+{
+    QTemporaryDir directory;
+    const QString user = QDir(directory.path()).filePath("patterns");
+    QVERIFY(QDir().mkpath(user));
+    const QByteArray sourceBytes = testPattern();
+    const QString source = writeTestFile(directory.path(), "source.json", sourceBytes);
+    const QByteArray normalized = QJsonDocument::fromJson(sourceBytes).toJson(QJsonDocument::Compact);
+    const QString stem = "import-" + QString::fromLatin1(QCryptographicHash::hash(normalized, QCryptographicHash::Sha256).toHex().left(24));
+    writeTestFile(user, stem + ".json", "distinct");
+    std::unique_ptr<Player> testPlayer(new Player(true, QStringList() << patternsPath() << user,
+        QDir(directory.path()).filePath("settings.json")));
+    QVERIFY(testPlayer->SetPatternFile("idle", source));
+    const QString assigned = state(testPlayer.get()).value("assignments").toObject().value("idle").toString();
+    QVERIFY(assigned.startsWith(stem + "-"));
+    QFile original(QDir(user).filePath(stem + ".json"));
+    QVERIFY(original.open(QIODevice::ReadOnly));
+    QCOMPARE(original.readAll(), QByteArray("distinct"));
+    QVERIFY(testPlayer->SetPatternFile("calendar", source));
+    QCOMPARE(state(testPlayer.get()).value("assignments").toObject().value("calendar").toString(), assigned);
+    QVERIFY(QFile::exists(QDir(user).filePath(assigned + ".json")));
+    QVERIFY(state(testPlayer.get()).value("patterns").toArray().size() >= 13);
+    testPlayer->ReloadPatterns();
+    QCOMPARE(state(testPlayer.get()).value("assignments").toObject().value("idle").toString(), assigned);
+}
+
+void PlayerTest::failedSettingsSaveRemovesNewImport()
+{
+    QTemporaryDir directory;
+    const QString user = QDir(directory.path()).filePath("patterns");
+    QVERIFY(QDir().mkpath(user));
+    const QString source = writeTestFile(directory.path(), "source.json", testPattern());
+    const QString blocked = QDir(directory.path()).filePath("blocked");
+    QFile blocker(blocked);
+    QVERIFY(blocker.open(QIODevice::WriteOnly));
+    blocker.write("x");
+    blocker.close();
+    std::unique_ptr<Player> testPlayer(new Player(true, QStringList() << patternsPath() << user,
+        QDir(blocked).filePath("settings.json")));
+    QVERIFY(!testPlayer->SetPatternFile("idle", source));
+    QCOMPARE(QDir(user).entryList(QStringList() << "import-*.json", QDir::Files).size(), 0);
 }
 
 QTEST_MAIN(PlayerTest)

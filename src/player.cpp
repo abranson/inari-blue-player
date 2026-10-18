@@ -8,6 +8,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
+#include <QCryptographicHash>
+#include <QUrl>
 #include <QDebug>
 
 Player::Player(bool simulate, const QStringList &directories, const QString &config, QObject *parent)
@@ -21,7 +23,7 @@ Player::Player(bool simulate, const QStringList &directories, const QString &con
     m_reload.setInterval(100);
     connect(&m_tick, &QTimer::timeout, this, &Player::tick);
     connect(&m_previewTimer, &QTimer::timeout, this, [this] {
-        m_previewId.clear(); m_previewOwner.clear(); pruneOwners(); select(); notify();
+        m_previewId.clear(); m_previewOwner.clear(); m_previewTransient = false; pruneOwners(); select(); notify();
     });
     connect(&m_hardware, &Hardware::changed, this, [this] { select(); notify(); });
     connect(&m_keepalive, &KeepAlive::changed, this, [this] { select(); notify(); });
@@ -40,6 +42,12 @@ QStringList Player::categories()
 }
 QString Player::caller() const { return calledFromDBus() ? message().service() : QString("local"); }
 QString Player::eventKey(const QString &owner, uint cookie) const { return owner + "/" + QString::number(cookie); }
+const Inari::Pattern *Player::patternFor(const QString &id) const
+{
+    if (m_previewTransient && id == m_previewId) return &m_previewPattern;
+    auto it = m_patterns.constFind(id);
+    return it == m_patterns.constEnd() ? nullptr : &it.value();
+}
 void Player::loadConfig()
 {
     QFile file(m_configPath);
@@ -98,7 +106,7 @@ bool Player::SetEnabled(bool enabled)
     if (!m_config.contains("assignments")) m_config.insert("assignments", QJsonObject());
     if (!save()) { m_config = previous; return false; }
     m_enabled = enabled;
-    if (!enabled) { m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear(); pruneOwners(); }
+    if (!enabled) { m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear(); m_previewTransient = false; pruneOwners(); }
     select(); notify(); return true;
 }
 bool Player::SetPattern(const QString &category, const QString &id)
@@ -119,19 +127,152 @@ bool Player::SetPattern(const QString &category, const QString &id)
 }
 bool Player::Preview(const QString &id, uint durationMs)
 {
-    if (!m_enabled || !m_hardware.present() || m_hardware.blocked() || !m_patterns.contains(id)
-        || durationMs < 100 || durationMs > 10000) return false;
+    if (!m_hardware.present() || m_hardware.blocked() || !m_patterns.contains(id)) return false;
+    const bool started = startPreview(m_patterns.value(id), durationMs, false);
+    if (started && m_configValid) { m_error.clear(); notify(); }
+    return started;
+}
+QString Player::localPatternPath(const QString &path) const
+{
+    const QUrl url(path);
+    if (url.isValid() && !url.scheme().isEmpty()) {
+        if (!url.isLocalFile() || (!url.host().isEmpty() && url.host() != "localhost")) return QString();
+        const QString local = url.toLocalFile();
+        return QFileInfo(local).isAbsolute() ? local : QString();
+    }
+    if (!QFileInfo(path).isAbsolute()) return QString();
+    return QDir::cleanPath(path);
+}
+bool Player::readPatternFile(const QString &path, Inari::Pattern *pattern, QByteArray *bytes, QString *error) const
+{
+    const QString local = localPatternPath(path);
+    QFileInfo info(local);
+    if (local.isEmpty() || !info.exists() || !info.isFile() || !info.isReadable() || info.size() > 65536) {
+        if (error) *error = info.size() > 65536 ? "Pattern exceeds 64 KiB" : "Pattern file is not a readable local file";
+        return false;
+    }
+    QFile file(local);
+    if (!file.open(QIODevice::ReadOnly) || file.size() > 65536) {
+        if (error) *error = "Cannot read pattern file";
+        return false;
+    }
+    const QByteArray data = file.read(65537);
+    QString parseError;
+    if (data.size() > 65536 || !Inari::Pattern::parse(data, pattern, &parseError)) {
+        if (error) *error = parseError;
+        return false;
+    }
+    if (bytes) *bytes = data;
+    if (error) error->clear();
+    return true;
+}
+QString Player::InspectPatternFile(const QString &path)
+{
+    Inari::Pattern pattern;
+    QString error;
+    const bool valid = readPatternFile(path, &pattern, nullptr, &error);
+    return QString::fromUtf8(QJsonDocument(QJsonObject{{"valid", valid}, {"name", valid ? pattern.name : QString()}, {"error", valid ? QString() : error}}).toJson(QJsonDocument::Compact));
+}
+bool Player::startPreview(const Inari::Pattern &pattern, uint durationMs, bool transient)
+{
+    if (durationMs < 100 || durationMs > 10000) return false;
     m_previewOwner = caller();
     watchOwner(m_previewOwner);
-    m_previewId = id;
+    m_previewId = transient ? QStringLiteral("preview-file") : pattern.id;
+    m_previewPattern = pattern;
+    m_previewTransient = transient;
     m_previewTimer.start(int(durationMs));
     m_selectionKey.clear();
     pruneOwners(); select(); notify(); return true;
 }
+bool Player::PreviewFile(const QString &path, uint durationMs)
+{
+    Inari::Pattern pattern;
+    QString error;
+    if (!m_hardware.present() || m_hardware.blocked()
+        || !readPatternFile(path, &pattern, nullptr, &error)) {
+        m_error = error.isEmpty() ? "Pattern preview unavailable" : error;
+        notify();
+        return false;
+    }
+    if (!startPreview(pattern, durationMs, true)) return false;
+    if (m_configValid) m_error.clear();
+    notify();
+    return true;
+}
+bool Player::SetPatternFile(const QString &category, const QString &path)
+{
+    if (!m_configValid || !categories().contains(category)) return false;
+    Inari::Pattern pattern;
+    QByteArray source;
+    QString error;
+    if (!readPatternFile(path, &pattern, &source, &error)) { m_error = error; notify(); return false; }
+    const QByteArray normalized = QJsonDocument::fromJson(source).toJson(QJsonDocument::Compact);
+    const QString stem = "import-" + QString::fromLatin1(QCryptographicHash::hash(normalized, QCryptographicHash::Sha256).toHex().left(24));
+    const QString directory = m_directories.isEmpty() ? QString() : m_directories.last();
+    if (directory.isEmpty()) { m_error = "No user pattern directory"; notify(); return false; }
+    QDir().mkpath(directory);
+    const QStringList files = QDir(directory).entryList({"*.json"}, QDir::Files, QDir::Name);
+    const auto previous = m_config;
+    QString id = stem;
+    QString target;
+    QByteArray encoded;
+    bool created = false;
+    bool found = false;
+    for (int suffix = 0; suffix < 1000; ++suffix) {
+        id = suffix ? stem + "-" + QString::number(suffix) : stem;
+        pattern.id = id;
+        QJsonObject object{{"version", 1}, {"id", id}, {"name", pattern.name}, {"repeat", pattern.repeat}};
+        QJsonArray steps;
+        for (const auto &step : pattern.steps) {
+            QJsonArray channels;
+            for (const auto &channel : step.channels)
+                channels.append(QJsonObject{{"to", channel.target}, {"fade_ms", channel.fade / 1000.0}, {"delay_ms", channel.delay / 1000.0}});
+            steps.append(QJsonObject{{"duration_ms", step.duration / 1000.0}, {"channels", channels}});
+        }
+        object.insert("steps", steps);
+        encoded = QJsonDocument(object).toJson(QJsonDocument::Compact) + "\n";
+        target = QDir(directory).filePath(id + ".json");
+        if (m_patterns.contains(id) && !QFile::exists(target)) continue;
+        const int existingIndex = files.indexOf(id + ".json");
+        if ((existingIndex < 0 && files.size() >= 256) || existingIndex >= 256) {
+            m_error = "User pattern directory limit reached"; notify(); return false;
+        }
+        QFile existing(target);
+        if (existing.exists()) {
+            if (!QFileInfo(target).isFile()) continue;
+            if (existing.open(QIODevice::ReadOnly) && existing.read(65537) == encoded) { created = false; found = true; break; }
+            continue;
+        }
+        QSaveFile file(target);
+        if (!file.open(QIODevice::WriteOnly) || file.write(encoded) != encoded.size() || !file.commit()) {
+            m_error = "Cannot save imported pattern"; notify(); return false;
+        }
+        created = true;
+        found = true;
+        break;
+    }
+    if (!found) { m_error = "Cannot choose imported pattern ID"; notify(); return false; }
+    const auto saved = m_config.value("assignments").toObject();
+    QJsonObject assignments;
+    for (auto it = saved.constBegin(); it != saved.constEnd(); ++it)
+        if (it.key() != category) assignments.insert(it.key(), it.value());
+    assignments.insert(category, id);
+    m_config.insert("assignments", assignments);
+    m_config.insert("enabled", m_enabled);
+    if (!save()) {
+        m_config = previous;
+        if (created) QFile::remove(target);
+        return false;
+    }
+    ReloadPatterns();
+    m_error.clear();
+    select(); notify(); return true;
+}
 void Player::StopPreview()
 {
     if (m_previewOwner != caller()) return;
-    m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear();
+    m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear(); m_previewTransient = false;
     pruneOwners(); select(); notify();
 }
 void Player::watchOwner(const QString &owner)
@@ -178,7 +319,7 @@ void Player::ownerGone(const QString &owner)
     for (auto it = m_events.begin(); it != m_events.end();) {
         if (it.value().owner == owner) it = m_events.erase(it); else ++it;
     }
-    if (m_previewOwner == owner) { m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear(); }
+    if (m_previewOwner == owner) { m_previewTimer.stop(); m_previewId.clear(); m_previewOwner.clear(); m_previewTransient = false; }
     pruneOwners(); select(); notify();
 }
 void Player::ReloadPatterns()
@@ -228,10 +369,10 @@ void Player::select()
     m_selecting = true;
     QString selected;
     QString key;
-    if (m_enabled && m_hardware.present() && !m_hardware.blocked()) {
+    if (m_hardware.present() && !m_hardware.blocked()) {
         const auto assignments = m_config.value("assignments").toObject();
         if (!m_previewId.isEmpty()) { selected = m_previewId; key = "preview/" + selected; }
-        else {
+        else if (m_enabled) {
             selected = assignments.value("idle").toString("off");
             key = "idle/" + selected;
             // Explicit category priority; latest event wins ties. Off categories
@@ -250,7 +391,7 @@ void Player::select()
             }
         }
     }
-    if (selected == "off" || !m_patterns.contains(selected)) { selected.clear(); key.clear(); }
+    if (selected == "off" || !patternFor(selected)) { selected.clear(); key.clear(); }
     const bool selectionChanged = key != m_selectionKey;
     if (selectionChanged) {
         m_selected = selected; m_selectionKey = key; m_elapsed.restart(); m_last = {{-1, -1, -1}};
@@ -259,7 +400,8 @@ void Player::select()
     }
     const bool want = !m_selected.isEmpty();
     Inari::Registers registers;
-    const auto pattern = m_patterns.value(m_selected);
+    const auto *patternPointer = patternFor(m_selected);
+    const auto pattern = patternPointer ? *patternPointer : Inari::Pattern();
     // Preview needs a live three-channel timeline and a guaranteed timeout.
     const bool canAutonomous = want && m_previewId.isEmpty()
                                && Inari::compileBreathing(pattern, &registers);
@@ -290,18 +432,19 @@ void Player::select()
 }
 void Player::tick()
 {
-    if (!m_outputReady || m_finished || !m_patterns.contains(m_selected)) return;
+    const auto *pattern = patternFor(m_selected);
+    if (!m_outputReady || m_finished || !pattern) return;
     bool finished;
-    const auto frame = m_patterns.value(m_selected).frame(m_elapsed.nsecsElapsed() / 1000, &finished);
+    const auto frame = pattern->frame(m_elapsed.nsecsElapsed() / 1000, &finished);
     if (frame != m_last && m_hardware.writeFrame(frame)) {
         m_last = frame; emit FrameChanged(frame[0], frame[1], frame[2]);
     }
     bool constant = true;
-    for (const auto &step : m_patterns.value(m_selected).steps)
+    for (const auto &step : pattern->steps)
         for (int i = 0; i < 3; ++i)
             constant = constant && !step.channels[i].delay && !step.channels[i].fade
                        && step.channels[i].target == frame[i];
-    if (finished || (constant && !m_patterns.value(m_selected).repeat)) {
+    if (finished || (constant && !pattern->repeat)) {
         m_finished = finished;
         m_tick.stop();
         // A preview always retains its lease until its bounded timeout.

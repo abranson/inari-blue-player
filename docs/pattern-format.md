@@ -41,6 +41,11 @@ software.
 
 The ID `off` is reserved for disabling a category. Its playback is always dark.
 
+Native file import accepts only absolute local paths (or `file://` URLs),
+regular files no larger than 64 KiB, and the JSON format above. Imported files
+receive a deterministic `import-<sha256>` ID and are written atomically in the
+user pattern directory; an existing identical import is reused.
+
 ## Playback and suspend
 
 Infinite four-step rise/hold/fall/off loops use the AW2023 pattern controllers

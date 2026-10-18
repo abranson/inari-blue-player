@@ -48,6 +48,34 @@ signals:
 class HardwareTest : public QObject {
     Q_OBJECT
 private slots:
+    void privacyPreferenceAndUnavailableService() {
+        auto server = QDBusConnection::connectToBus(qgetenv("DBUS_SESSION_BUS_ADDRESS"), "privacy-policy-mock");
+        auto client = QDBusConnection::sessionBus();
+        QVERIFY(server.registerService("org.sailfishos.tohd1"));
+        QVERIFY(server.registerService("org.sailfishos.privacyswitch"));
+        Cover cover; PrivacyMock privacy; privacy.active = true;
+        QVERIFY(server.registerObject("/org/sailfishos/tohd1/toh", &cover, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllProperties));
+        QVERIFY(server.registerObject("/privacyswitch", &privacy, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals));
+        Hardware hardware(client, client, [](int, int) { return true; });
+        hardware.request(true);
+        QTRY_VERIFY(hardware.present());
+        QVERIFY(hardware.blocked());
+        hardware.setPrivacySwitchEnabled(false);
+        QTRY_VERIFY(hardware.ready() && !hardware.blocked());
+        hardware.setPrivacySwitchEnabled(true);
+        QVERIFY(hardware.blocked() && !hardware.ready());
+        QTRY_COMPARE(cover.returned, 1);
+        hardware.setPrivacySwitchEnabled(false);
+        QTRY_VERIFY(hardware.ready());
+        server.unregisterService("org.sailfishos.privacyswitch");
+        QTRY_VERIFY(hardware.blocked() && !hardware.ready());
+        QTRY_COMPARE(cover.returned, 2);
+        QVERIFY(server.registerService("org.sailfishos.privacyswitch"));
+        QTRY_VERIFY(hardware.ready() && !hardware.blocked());
+        hardware.shutdown();
+        server.unregisterService("org.sailfishos.tohd1");
+        server.unregisterService("org.sailfishos.privacyswitch");
+    }
     void lifecycle() {
         auto server = QDBusConnection::connectToBus(qgetenv("DBUS_SESSION_BUS_ADDRESS"), "hardware-mock");
         auto client = QDBusConnection::sessionBus();

@@ -32,6 +32,7 @@ Player::Player(bool simulate, const QStringList &directories, const QString &con
     connect(&m_files, &QFileSystemWatcher::fileChanged, this, [this] { m_reload.start(); });
     connect(&m_reload, &QTimer::timeout, this, &Player::ReloadPatterns);
     loadConfig();
+    m_hardware.setPrivacySwitchEnabled(m_config.value("privacySwitch").toBool(true));
     ReloadPatterns();
 }
 Player::~Player() { shutdown(); }
@@ -82,6 +83,7 @@ QString Player::GetState() const
     state.insert("present", m_hardware.present());
     state.insert("enabled", m_enabled);
     state.insert("blocked", m_hardware.blocked());
+    state.insert("privacySwitch", m_config.value("privacySwitch").toBool(true));
     state.insert("ready", m_hardware.ready());
     state.insert("error", m_error.isEmpty() ? m_hardware.error() : m_error);
     if (m_keepalive.error()) state.insert("error", "Cannot keep software playback awake");
@@ -123,6 +125,17 @@ bool Player::SetPattern(const QString &category, const QString &id)
     m_config.insert("assignments", assignments);
     m_config.insert("enabled", m_enabled);
     if (!save()) { m_config = previous; return false; }
+    select(); notify(); return true;
+}
+bool Player::SetPrivacySwitch(bool enabled)
+{
+    if (!m_configValid) return false;
+    const auto previous = m_config;
+    m_config.insert("privacySwitch", enabled);
+    m_config.insert("enabled", m_enabled);
+    if (!m_config.contains("assignments")) m_config.insert("assignments", QJsonObject());
+    if (!save()) { m_config = previous; return false; }
+    m_hardware.setPrivacySwitchEnabled(enabled);
     select(); notify(); return true;
 }
 bool Player::Preview(const QString &id, uint durationMs)

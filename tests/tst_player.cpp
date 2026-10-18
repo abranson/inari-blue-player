@@ -26,6 +26,7 @@ private slots:
     void invalidPatternOverrideLeavesBundledPattern();
     void autonomousBreathingAndPreviewRestore();
     void repeatedAssignmentReplacementPreservesOtherCategories();
+    void privacyPreferencePersistsWithoutEnabling();
     void invalidAndOversizeFileDoesNotWrite();
     void transientFilePreviewSurvivesReloadWithoutCatalogOrEnablement();
     void validFileImportAssignsAndCollisionIsPreserved();
@@ -91,6 +92,25 @@ void PlayerTest::defaultStateIsDisabledAndOff()
     QCOMPARE(current.value("playing").toString(), QString());
     QCOMPARE(current.value("assignments").toObject().value("idle").toString(), QString("off"));
 }
+void PlayerTest::privacyPreferencePersistsWithoutEnabling()
+{
+    QTemporaryDir directory;
+    {
+        std::unique_ptr<Player> testPlayer(player(&directory));
+        QVERIFY(state(testPlayer.get()).value("privacySwitch").toBool());
+        QVERIFY(testPlayer->SetPrivacySwitch(false));
+        QVERIFY(!state(testPlayer.get()).value("privacySwitch").toBool());
+        QVERIFY(!state(testPlayer.get()).value("enabled").toBool());
+        QVERIFY(testPlayer->SetPattern("clock", "alternating-alert"));
+    }
+    std::unique_ptr<Player> restored(player(&directory));
+    QVERIFY(!state(restored.get()).value("privacySwitch").toBool());
+    QVERIFY(!state(restored.get()).value("enabled").toBool());
+    QCOMPARE(state(restored.get()).value("assignments").toObject().value("clock").toString(), QString("alternating-alert"));
+    QVERIFY(restored->SetPrivacySwitch(true));
+    QVERIFY(state(restored.get()).value("privacySwitch").toBool());
+}
+
 void PlayerTest::autonomousBreathingAndPreviewRestore()
 {
     QTemporaryDir directory;

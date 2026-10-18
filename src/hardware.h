@@ -20,6 +20,7 @@ public:
     bool ready() const { return m_ready; }
     QString error() const { return m_error; }
     void request(bool wanted);
+    void setPrivacySwitchEnabled(bool enabled);
     bool writeFrame(const Inari::Levels &levels);
     bool startBreathing(const Inari::Registers &registers);
     void shutdown();
@@ -41,6 +42,9 @@ private:
     bool m_simulate;
     bool m_present = false;
     bool m_blocked = true;
+    bool m_privacyKnown = false;
+    bool m_privacyActive = true;
+    bool m_privacySwitchEnabled = true;
     bool m_wanted = false;
     bool m_pending = false;
     bool m_ready = false;

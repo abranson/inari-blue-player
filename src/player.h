@@ -20,6 +20,7 @@ public:
 public slots:
     QString GetState() const;
     bool SetEnabled(bool enabled);
+    bool SetPrivacySwitch(bool enabled);
     bool SetPattern(const QString &category, const QString &id);
     bool Preview(const QString &id, uint durationMs);
     QString InspectPatternFile(const QString &path);

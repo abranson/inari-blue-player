@@ -1,6 +1,6 @@
 Name:       inari-blue-player
 Version:    0.1.0
-Release:    3
+Release:    4
 Summary:    Native Inari Blue pattern playback service
 License:    BSD-3-Clause
 Source0:    %{name}-%{version}.tar.gz
@@ -49,6 +49,7 @@ install -D -m755 build-sdk-keepalive-tests/keepalive-tests %{buildroot}/opt/test
 %{_datadir}/dbus-1/services/org.sailfishos.InariBlue1.service
 %dir %{_datadir}/inari-blue
 %{_datadir}/inari-blue/patterns
+%{_datadir}/inari-blue/PrivacySwitchItem.qml
 %{_datadir}/tohd-1/tohs/0001/0004/inari-player.yaml
 
 %files tests

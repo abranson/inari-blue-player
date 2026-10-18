@@ -13,7 +13,8 @@ Object: `/org/sailfishos/InariBlue1`.
 * `PreviewFile(s path, u durationMs) -> b`: preview a validated local pattern
   file in memory; it does not add the file to the catalogue or save settings.
 * `SetPatternFile(s category, s path) -> b`: import a validated local pattern
-  into the user catalogue and assign it atomically.
+  into the user catalogue and save the assignment. A failed settings save
+  removes the newly imported file.
 * `StopPreview()`: end only the calling connection's preview and resume automatic
   feedback. Preview also ends on timeout or caller disconnect.
 * `StartEvent(u cookie, s category) -> b`: register/replace caller's event.
@@ -27,7 +28,8 @@ other. Idle cannot be supplied to StartEvent. Enabled event categories override
 idle in this priority order: ringtone, internet-call, clock, calendar, message,
 chat, email, other. Most recent wins ties. Selecting Off disables only that
 category; there is no implicit fallback to another category. Preview overrides
-feedback temporarily; privacy overrides everything. All requests disappear when
+feedback temporarily, including while the master setting is disabled; it never
+changes that setting. Privacy blocks playback when its Inari option is selected. All requests disappear when
 the originating D-Bus connection leaves. No notification content is accepted.
 
 Pattern lifetime comes from its repeat count and the event's Start/Stop lifetime.
@@ -39,3 +41,9 @@ cancellation, pause, finite feedback and repeating alarms.
 are playing an eligible loop. Event registrations are retained while disabled
 or assigned Off so live settings changes can affect a still-running alarm or
 call; they remain bounded by ngfd lifetime and caller disconnect cleanup.
+
+`SetPrivacySwitch(bool)` controls whether privacy mode blocks Inari Blue. The
+`privacySwitch` state/config field defaults to true, preserving the original
+behavior. Changing it takes effect immediately without altering enabled state or
+assignments. An unavailable privacy service still fails closed. The optional
+privacy Settings component shows this choice only while the cover is present.

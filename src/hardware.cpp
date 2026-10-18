@@ -29,7 +29,7 @@ Hardware::Hardware(bool simulate, const QDBusConnection &system, const QDBusConn
     m_retry.setSingleShot(true);
     m_retry.setInterval(5000);
     connect(&m_retry, &QTimer::timeout, this, [this] { refreshCover(); refreshPrivacy(); reconcile(); });
-    if (simulate) { m_present = true; m_blocked = false; return; }
+    if (simulate) { m_present = true; m_privacyKnown = true; m_privacyActive = false; m_blocked = false; return; }
     qDBusRegisterMetaType<InterfaceMap>();
     auto manager = new TohManager(m_bus, this);
     connect(manager, &TohManager::InterfacesAdded, this, [this] { refreshCover(); });
@@ -46,12 +46,14 @@ Hardware::Hardware(bool simulate, const QDBusConnection &system, const QDBusConn
     });
     auto privacy = new Privacy(m_session, this);
     connect(privacy, &Privacy::privacyModeActiveChanged, this, [this](bool active) {
-        ++m_privacyQuery; m_blocked = active; reconcile(); emit changed();
+        ++m_privacyQuery; m_privacyKnown = true; m_privacyActive = active;
+        m_blocked = m_privacySwitchEnabled && active; reconcile(); emit changed();
     });
     auto privacyOwner = new QDBusServiceWatcher("org.sailfishos.privacyswitch", m_session,
                                                QDBusServiceWatcher::WatchForOwnerChange, this);
     connect(privacyOwner, &QDBusServiceWatcher::serviceOwnerChanged, this, [this] {
-        m_blocked = true; reconcile(); emit changed(); refreshPrivacy();
+        m_retry.stop(); // A new privacy owner can be queried immediately.
+        m_privacyKnown = false; m_blocked = true; reconcile(); emit changed(); refreshPrivacy();
     });
     refreshCover();
     refreshPrivacy();
@@ -87,7 +89,9 @@ void Hardware::refreshPrivacy()
         QDBusPendingReply<bool> reply = *watcher;
         watcher->deleteLater();
         if (sequence != m_privacyQuery || m_shuttingDown) return;
-        m_blocked = reply.isError() || reply.value();
+        m_privacyKnown = !reply.isError();
+        m_privacyActive = reply.isError() || reply.value();
+        m_blocked = !m_privacyKnown || (m_privacySwitchEnabled && m_privacyActive);
         if (reply.isError()) m_retry.start();
         reconcile();
         emit changed();
@@ -97,6 +101,14 @@ void Hardware::request(bool wanted)
 {
     m_wanted = wanted;
     reconcile();
+}
+void Hardware::setPrivacySwitchEnabled(bool enabled)
+{
+    if (m_privacySwitchEnabled == enabled) return;
+    m_privacySwitchEnabled = enabled;
+    m_blocked = !m_privacyKnown || (enabled && m_privacyActive);
+    reconcile();
+    emit changed();
 }
 void Hardware::reconcile()
 {

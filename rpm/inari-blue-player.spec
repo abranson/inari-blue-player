@@ -1,6 +1,6 @@
 Name:       inari-blue-player
 Version:    0.1.0
-Release:    1
+Release:    2
 Summary:    Native Inari Blue pattern playback service
 License:    BSD-3-Clause
 Source0:    %{name}-%{version}.tar.gz
@@ -30,11 +30,16 @@ Hardware-free parser and simulated playback regression tests.
 mkdir -p build-tests build-player-tests
 (cd build-tests && %qmake5 ../tests/pattern-tests.pro && %make_build)
 (cd build-player-tests && %qmake5 ../tests/player-tests.pro && %make_build)
+mkdir -p build-hardware-tests build-keepalive-tests
+(cd build-hardware-tests && %qmake5 ../tests/hardware-tests.pro && %make_build)
+(cd build-keepalive-tests && %qmake5 ../tests/keepalive-tests.pro && %make_build)
 
 %install
 %qmake5_install
 install -D -m755 build-tests/pattern-tests %{buildroot}/opt/tests/inari-blue-player/pattern-tests
 install -D -m755 build-player-tests/player-tests %{buildroot}/opt/tests/inari-blue-player/player-tests
+install -D -m755 build-hardware-tests/hardware-tests %{buildroot}/opt/tests/inari-blue-player/hardware-tests
+install -D -m755 build-keepalive-tests/keepalive-tests %{buildroot}/opt/tests/inari-blue-player/keepalive-tests
 
 %files
 %license LICENSE

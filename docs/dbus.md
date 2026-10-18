@@ -28,3 +28,8 @@ Pattern lifetime comes from its repeat count and the event's Start/Stop lifetime
 A finite pattern ends dark until its event ends. Events are limited to 128
 concurrent entries. Clients must stop their events; the ngfd integration handles
 cancellation, pause, finite feedback and repeating alarms.
+
+`GetState` also reports `autonomous`, true while the hardware pattern controllers
+are playing an eligible loop. Event registrations are retained while disabled
+or assigned Off so live settings changes can affect a still-running alarm or
+call; they remain bounded by ngfd lifetime and caller disconnect cleanup.

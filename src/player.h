@@ -1,6 +1,7 @@
 #pragma once
 #include "pattern.h"
 #include "hardware.h"
+#include "keepalive.h"
 #include <QDBusContext>
 #include <QDBusServiceWatcher>
 #include <QElapsedTimer>
@@ -42,6 +43,7 @@ private:
     void pruneOwners();
     static QStringList categories();
     Hardware m_hardware;
+    KeepAlive m_keepalive;
     QStringList m_directories;
     QString m_configPath;
     QString m_error;
@@ -63,4 +65,8 @@ private:
     bool m_enabled = false;
     bool m_configValid = true;
     bool m_outputReady = false;
+    bool m_autonomous = false;
+    bool m_selecting = false;
+    bool m_finished = false;
+    bool m_shuttingDown = false;
 };

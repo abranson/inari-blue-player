@@ -11,7 +11,7 @@
 #include <QDebug>
 
 Player::Player(bool simulate, const QStringList &directories, const QString &config, QObject *parent)
-    : QObject(parent), m_hardware(simulate, this), m_directories(directories), m_configPath(config),
+    : QObject(parent), m_hardware(simulate, this), m_keepalive(simulate, this), m_directories(directories), m_configPath(config),
       m_owners(QString(), QDBusConnection::sessionBus(), QDBusServiceWatcher::WatchForUnregistration, this)
 {
     m_tick.setInterval(10);
@@ -24,6 +24,7 @@ Player::Player(bool simulate, const QStringList &directories, const QString &con
         m_previewId.clear(); m_previewOwner.clear(); pruneOwners(); select(); notify();
     });
     connect(&m_hardware, &Hardware::changed, this, [this] { select(); notify(); });
+    connect(&m_keepalive, &KeepAlive::changed, this, [this] { select(); notify(); });
     connect(&m_owners, &QDBusServiceWatcher::serviceUnregistered, this, &Player::ownerGone);
     connect(&m_files, &QFileSystemWatcher::directoryChanged, this, [this] { m_reload.start(); });
     connect(&m_files, &QFileSystemWatcher::fileChanged, this, [this] { m_reload.start(); });
@@ -32,7 +33,7 @@ Player::Player(bool simulate, const QStringList &directories, const QString &con
     ReloadPatterns();
 }
 Player::~Player() { shutdown(); }
-void Player::shutdown() { m_tick.stop(); m_previewTimer.stop(); m_hardware.shutdown(); }
+void Player::shutdown() { m_shuttingDown = true; m_tick.stop(); m_previewTimer.stop(); m_hardware.shutdown(); m_keepalive.shutdown(); }
 QStringList Player::categories()
 {
     return {"idle", "ringtone", "internet-call", "message", "chat", "email", "clock", "calendar", "other"};
@@ -75,6 +76,8 @@ QString Player::GetState() const
     state.insert("blocked", m_hardware.blocked());
     state.insert("ready", m_hardware.ready());
     state.insert("error", m_error.isEmpty() ? m_hardware.error() : m_error);
+    if (m_keepalive.error()) state.insert("error", "Cannot keep software playback awake");
+    state.insert("autonomous", m_autonomous);
     state.insert("playing", m_selected);
     state.insert("preview", !m_previewId.isEmpty());
     QJsonArray patterns;
@@ -215,6 +218,9 @@ void Player::ReloadPatterns()
 }
 void Player::select()
 {
+    // request() may synchronously emit changed in simulation or on release.
+    if (m_selecting || m_shuttingDown) return;
+    m_selecting = true;
     QString selected;
     QString key;
     if (m_enabled && m_hardware.present() && !m_hardware.blocked()) {
@@ -240,23 +246,46 @@ void Player::select()
         }
     }
     if (selected == "off" || !m_patterns.contains(selected)) { selected.clear(); key.clear(); }
-    if (key != m_selectionKey) {
+    const bool selectionChanged = key != m_selectionKey;
+    if (selectionChanged) {
         m_selected = selected; m_selectionKey = key; m_elapsed.restart(); m_last = {{-1, -1, -1}};
+        m_autonomous = false;
+        m_finished = false;
     }
     const bool want = !m_selected.isEmpty();
-    m_hardware.request(want);
-    const bool ready = want && m_hardware.ready();
-    if (ready && !m_outputReady) { m_elapsed.restart(); m_last = {{-1, -1, -1}}; }
+    Inari::Registers registers;
+    const auto pattern = m_patterns.value(m_selected);
+    // Preview needs a live three-channel timeline and a guaranteed timeout.
+    const bool canAutonomous = want && m_previewId.isEmpty()
+                               && Inari::compileBreathing(pattern, &registers);
+    bool constant = want && !pattern.repeat;
+    for (const auto &step : pattern.steps)
+        for (int c = 0; c < 3; ++c)
+            constant = constant && !step.channels[c].delay && !step.channels[c].fade
+                       && step.channels[c].target == pattern.steps[0].channels[c].target;
+    const bool software = want && ((!canAutonomous && !constant && !m_finished) || !m_previewId.isEmpty());
+    m_keepalive.request(software);
+    const bool allowed = want && (!software || m_keepalive.ready());
+    m_hardware.request(allowed);
+    const bool ready = allowed && m_hardware.ready();
+    const bool starting = ready && (!m_outputReady || selectionChanged);
+    if (starting) { m_elapsed.restart(); m_last = {{-1, -1, -1}}; }
     m_outputReady = ready;
-    if (ready) { m_tick.start(); tick(); }
+    if (ready && canAutonomous) {
+        if (starting) m_autonomous = m_hardware.startBreathing(registers);
+        m_tick.stop();
+    } else if (ready && !m_finished) { m_tick.start(); tick(); }
+    else if (ready) m_tick.stop();
     else {
+        m_autonomous = false;
         m_tick.stop();
         if (m_last != Inari::Levels{{0, 0, 0}}) { m_last = {{0, 0, 0}}; emit FrameChanged(0, 0, 0); }
     }
+    m_selecting = false;
 }
 void Player::tick()
 {
-    if (!m_outputReady || !m_patterns.contains(m_selected)) return;
+    if (!m_outputReady || m_finished || !m_patterns.contains(m_selected)) return;
     bool finished;
     const auto frame = m_patterns.value(m_selected).frame(m_elapsed.nsecsElapsed() / 1000, &finished);
     if (frame != m_last && m_hardware.writeFrame(frame)) {
@@ -267,5 +296,10 @@ void Player::tick()
         for (int i = 0; i < 3; ++i)
             constant = constant && !step.channels[i].delay && !step.channels[i].fade
                        && step.channels[i].target == frame[i];
-    if (finished || (constant && !m_patterns.value(m_selected).repeat)) m_tick.stop();
+    if (finished || (constant && !m_patterns.value(m_selected).repeat)) {
+        m_finished = finished;
+        m_tick.stop();
+        // A preview always retains its lease until its bounded timeout.
+        if (m_previewId.isEmpty()) m_keepalive.request(false);
+    }
 }

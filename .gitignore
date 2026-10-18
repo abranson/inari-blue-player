@@ -3,3 +3,9 @@
 /RPMS/
 /AGENTS.md
 /TASK.md
+
+/Makefile
+/*.o
+/moc_*.cpp
+/inari-blue-player
+/documentation.list

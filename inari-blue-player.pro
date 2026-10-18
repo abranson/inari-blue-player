@@ -17,3 +17,6 @@ dbusservice.files = data/org.sailfishos.InariBlue1.service
 toh.path = /usr/share/tohd-1/tohs/0001/0004
 toh.files = data/inari-player.yaml
 INSTALLS += target patterns service dbusservice toh
+
+SOURCES += src/aw2023.cpp src/keepalive.cpp
+HEADERS += src/aw2023.h src/keepalive.h

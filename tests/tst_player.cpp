@@ -23,6 +23,7 @@ private slots:
     void disabledCategoryDoesNotFallThrough();
     void malformedConfigIsPreserved();
     void invalidPatternOverrideLeavesBundledPattern();
+    void autonomousBreathingAndPreviewRestore();
 
 private:
     QString patternsPath() const;
@@ -61,6 +62,23 @@ void PlayerTest::defaultStateIsDisabledAndOff()
     QVERIFY(!current.value("enabled").toBool());
     QCOMPARE(current.value("playing").toString(), QString());
     QCOMPARE(current.value("assignments").toObject().value("idle").toString(), QString("off"));
+}
+
+void PlayerTest::autonomousBreathingAndPreviewRestore()
+{
+    QTemporaryDir directory;
+    std::unique_ptr<Player> testPlayer(player(&directory));
+    QVERIFY(testPlayer->SetEnabled(true));
+    QVERIFY(testPlayer->SetPattern("idle", "stock-breathing"));
+    QVERIFY(state(testPlayer.get()).value("autonomous").toBool());
+    QVERIFY(testPlayer->Preview("stock-breathing", 100));
+    QVERIFY(!state(testPlayer.get()).value("autonomous").toBool());
+    QTRY_VERIFY(!state(testPlayer.get()).value("preview").toBool());
+    QVERIFY(state(testPlayer.get()).value("autonomous").toBool());
+    QVERIFY(testPlayer->SetPattern("idle", "kitt-swoosh"));
+    QVERIFY(!state(testPlayer.get()).value("autonomous").toBool());
+    QVERIFY(testPlayer->SetEnabled(false));
+    QVERIFY(!state(testPlayer.get()).value("ready").toBool());
 }
 
 void PlayerTest::enablingAndAssigningPatternUpdatesState()

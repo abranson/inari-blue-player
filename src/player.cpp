@@ -105,7 +105,12 @@ bool Player::SetPattern(const QString &category, const QString &id)
 {
     if (!m_configValid || !categories().contains(category) || !m_patterns.contains(id)) return false;
     const auto previous = m_config;
-    auto assignments = m_config.value("assignments").toObject();
+    const auto saved = m_config.value("assignments").toObject();
+    // Build a fresh child object. Qt 5.6's binary JSON compaction can crash
+    // when a modified shared child is inserted back into its parent.
+    QJsonObject assignments;
+    for (auto it = saved.constBegin(); it != saved.constEnd(); ++it)
+        if (it.key() != category) assignments.insert(it.key(), it.value());
     assignments.insert(category, id);
     m_config.insert("assignments", assignments);
     m_config.insert("enabled", m_enabled);

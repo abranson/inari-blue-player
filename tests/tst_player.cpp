@@ -24,6 +24,7 @@ private slots:
     void malformedConfigIsPreserved();
     void invalidPatternOverrideLeavesBundledPattern();
     void autonomousBreathingAndPreviewRestore();
+    void repeatedAssignmentReplacementPreservesOtherCategories();
 
 private:
     QString patternsPath() const;
@@ -79,6 +80,20 @@ void PlayerTest::autonomousBreathingAndPreviewRestore()
     QVERIFY(!state(testPlayer.get()).value("autonomous").toBool());
     QVERIFY(testPlayer->SetEnabled(false));
     QVERIFY(!state(testPlayer.get()).value("ready").toBool());
+}
+
+void PlayerTest::repeatedAssignmentReplacementPreservesOtherCategories()
+{
+    QTemporaryDir directory;
+    std::unique_ptr<Player> testPlayer(player(&directory));
+    QVERIFY(testPlayer->SetPattern("clock", "alternating-alert"));
+    for (int i = 0; i < 80; ++i) {
+        const QString id = i % 2 ? "kitt-swoosh" : "stock-breathing";
+        QVERIFY(testPlayer->SetPattern("idle", id));
+        const auto assignments = state(testPlayer.get()).value("assignments").toObject();
+        QCOMPARE(assignments.value("idle").toString(), id);
+        QCOMPARE(assignments.value("clock").toString(), QString("alternating-alert"));
+    }
 }
 
 void PlayerTest::enablingAndAssigningPatternUpdatesState()

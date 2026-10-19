@@ -9,3 +9,7 @@
 /moc_*.cpp
 /inari-blue-player
 /documentation.list
+
+/ngfd/*.o
+/ngfd/*.so
+/ngfd/test-inari-blue

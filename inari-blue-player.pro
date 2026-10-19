@@ -20,7 +20,9 @@ privacyui.path = /usr/share/inari-blue
 privacyui.files = data/PrivacySwitchItem.qml
 settingsui.path = /usr/share/inari-blue/settings
 settingsui.files = settings/*.qml
-INSTALLS += target patterns service dbusservice toh privacyui settingsui
+settingsentry.path = /usr/share/jolla-settings/entries
+settingsentry.files = settings/inari-blue.json
+INSTALLS += target patterns service dbusservice toh privacyui settingsui settingsentry
 
 SOURCES += src/aw2023.cpp src/keepalive.cpp
 HEADERS += src/aw2023.h src/keepalive.h

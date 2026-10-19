@@ -1,0 +1,15 @@
+{
+    "disabled_group": "sailfish-guest",
+    "entries": [
+        {
+            "path": "system_settings/look_and_feel/inari_blue",
+            "title": "Inari Blue",
+            "type": "page",
+            "icon": "image://theme/icon-m-notifications",
+            "order": 260,
+            "params": {
+                "source": "/usr/share/inari-blue/settings/InariBluePage.qml"
+            }
+        }
+    ]
+}

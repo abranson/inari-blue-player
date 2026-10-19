@@ -4,6 +4,9 @@ import Sailfish.Silica 1.0
 
 Item {
     id: root
+
+    property string label: qsTr("Disable Inari Blue")
+    property string description
     property bool present
     property bool usePrivacySwitch: true
     property bool busy: true
@@ -27,9 +30,10 @@ Item {
         id: content
         width: parent.width
         IconTextSwitch {
-            // This optional component is loaded by the privacy switch page.
+            // Shared by the Inari page and the optional central privacy entry.
             //% "Disable Inari Blue"
-            text: qsTr("Disable Inari Blue")
+            text: root.label
+            description: root.description
             icon.source: "image://theme/icon-m-notifications"
             automaticCheck: false
             checked: root.usePrivacySwitch

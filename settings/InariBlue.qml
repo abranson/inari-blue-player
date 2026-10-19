@@ -135,11 +135,6 @@ Item {
         width: parent.width
         spacing: Theme.paddingSmall
 
-        SectionHeader {
-            //% "Inari Blue"
-            text: qsTrId("settings_sounds-inari_blue-section")
-        }
-
         DisabledByMdmBanner {
             active: root.blocked
             compressed: true
@@ -155,6 +150,15 @@ Item {
             //% "Use the notification light patterns"
             description: qsTrId("settings_sounds-inari_blue-enable_description")
             onClicked: root.setEnabled(!root.lightsEnabled)
+        }
+
+        Loader {
+            width: parent.width
+            source: Qt.resolvedUrl("../PrivacySwitchItem.qml")
+            onLoaded: {
+                item.label = qsTr("Disable with privacy switch")
+                item.description = qsTr("Turn off Inari Blue while privacy mode is active")
+            }
         }
 
         Label {

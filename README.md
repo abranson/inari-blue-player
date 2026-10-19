@@ -1,7 +1,7 @@
 # Inari Blue native integration
 
 Native SailfishOS feedback for the three-channel AW2023 Inari Blue cover.
-This repository owns the player, pattern files, Sounds and feedback controls,
+This repository owns the player, pattern files, native Settings page,
 privacy control and ngfd notification plugin. There is no standalone application,
 pattern editor, notification watcher, app override or contacts access.
 
@@ -11,18 +11,20 @@ pattern editor, notification watcher, app override or contacts access.
 | --- | --- |
 | `src/` | Qt 5.6/C++11 player, JSON pattern engine, hardware access and D-Bus API |
 | `patterns/` | Bundled declarative patterns |
-| `settings/` | Sounds section, ringtone-style picker, previews and file import |
+| `settings/` | Settings entry and page, ringtone-style picker, previews and file import |
 | `data/` | Service activation, cover permissions and privacy control |
 | `ngfd/` | Independently built notification sink and its mocked tests |
 | `tests/` | Player, pattern, hardware, keepalive and D-Bus tests |
 | `rpm/` | Player and standalone ngfd plugin package definitions |
 | `integration/` | Small patches and baseline information for existing Sailfish components |
 
-All Inari-specific implementation lives here. Existing Settings loads the optional
-Sounds component and exports its existing audio selection row. Privacy settings
-loads the optional privacy component. Feedback configuration lists the optional
-plugin. The ngfd daemon itself needs no source changes. See
-[integration and package transition](integration/README.md).
+All Inari-specific implementation lives here. Settings discovers our package's
+entry manifest and loads the independent Inari Blue page. No Settings source
+changes or private audio components are required. The page includes its own
+privacy option; the optional central Privacy settings hook exposes the same
+setting. Feedback configuration lists the optional plugin. ngfd needs only a
+packaging fix to export an existing development header, with no runtime code
+changes. See [integration and package transition](integration/README.md).
 
 ## Patterns and configuration
 
@@ -76,8 +78,9 @@ other LED owners and mask the stock breathing service before enabling this user
 service. Installation alone does not enable or start it. Symbiosis must reload
 its cover configuration before granting the executable access.
 
-The configurable privacy option defaults to enabled. With that option enabled,
-an active or unavailable privacy service blocks output, including previews.
+The configurable privacy option defaults to enabled. When enabled, active
+privacy mode blocks output, including previews. An unavailable privacy service
+always blocks output until its state can be read.
 Releasing I2C disables the chip and returns the loan. Cover removal and service
 owner changes are observed through D-Bus.
 

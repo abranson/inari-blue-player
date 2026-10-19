@@ -161,7 +161,7 @@ Dialog {
                 dialog: patternDialog
                 title: patternDialog.categoryTitle
             }
-            AudioItem {
+            PatternItem {
                 title: patternDialog.activePatternName
                 //% "Current pattern"
                 subtitle: qsTrId("settings_sounds-inari_blue-current_pattern")
@@ -195,7 +195,7 @@ Dialog {
                     text: qsTrId("settings_sounds-inari_blue-select_from_file")
                 }
             }
-            AudioItem {
+            PatternItem {
                 visible: patternDialog.selectedFile !== ""
                 height: visible ? implicitHeight : 0
                 title: patternDialog.selectedName
@@ -257,7 +257,7 @@ Dialog {
             }
             Item { width: 1; height: Theme.paddingLarge }
         }
-        delegate: AudioItem {
+        delegate: PatternItem {
             visible: modelData.id !== "off"
             height: visible ? implicitHeight : 0
             title: modelData.name

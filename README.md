@@ -15,7 +15,7 @@ pattern editor, notification watcher, app override or contacts access.
 | `data/` | Service activation, cover permissions and privacy control |
 | `ngfd/` | Independently built notification sink and its mocked tests |
 | `tests/` | Player, pattern, hardware, keepalive and D-Bus tests |
-| `rpm/` | Player and standalone ngfd plugin package definitions |
+| `rpm/` | One spec building the player, plugin and optional test packages |
 | `docs/integration.md` | Optional upstream improvements and package transition notes |
 
 All Inari-specific implementation lives here. Settings discovers our package's
@@ -52,10 +52,10 @@ it does not require an ngfd source checkout. Run its tests with
 `make -C ngfd check`. Cross-compiled tests must run on the target architecture.
 See [plugin build instructions](ngfd/README.md).
 
-Build the two RPM specs explicitly from this repository:
-
-* `rpm/inari-blue-player.spec`: player, patterns and QML; separate test subpackage.
-* `rpm/ngfd-plugin-inari-blue.spec`: ngfd plugin; separate test subpackage.
+Build `rpm/inari-blue-player.spec` for the complete project in one build. It
+produces `inari-blue-player`, `ngfd-plugin-inari-blue`, and their separate optional
+test packages. Both runtime packages are needed for notification feedback.
+The existing package names are retained; all packages share one version/release.
 
 Host simulation:
 

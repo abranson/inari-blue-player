@@ -88,7 +88,7 @@ fi
 %{_libdir}/ngf/libngfd_inari-blue.so
 %{_libexecdir}/ngfd-plugin-inari-blue-config
 %attr(0700,root,root) %dir %{_localstatedir}/lib/ngfd-plugin-inari-blue
-%ghost %{_localstatedir}/lib/ngfd-plugin-inari-blue/managed.json
+%attr(0600,root,root) %ghost %{_localstatedir}/lib/ngfd-plugin-inari-blue/managed.json
 
 %files tests
 /opt/tests/ngfd-plugin-inari-blue/test-inari-blue

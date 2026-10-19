@@ -40,7 +40,7 @@ install: all
 	install -D -m 0755 libngfd_inari-blue.so $(DESTDIR)$(PLUGIN_DIR)/libngfd_inari-blue.so
 
 install-tests: test-inari-blue
-	install -D -m 0644 test-manage-config.py $(DESTDIR)$(TESTDIR)/test-manage-config.py
+	install -D -m 0755 test-manage-config.py $(DESTDIR)$(TESTDIR)/test-manage-config.py
 	install -D -m 0755 test-inari-blue $(DESTDIR)$(TESTDIR)/test-inari-blue
 
 uninstall:

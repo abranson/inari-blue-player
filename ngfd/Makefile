@@ -22,10 +22,10 @@ all: libngfd_inari-blue.so
 libngfd_inari-blue.so: plugin.o
 	$(CC) $(LDFLAGS) -shared -Wl,-soname,$@ -o $@ $^ $(PLUGIN_LIBS)
 
-plugin.o: plugin.c
+plugin.o: plugin.c compat/core-dbus.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NGF_INCLUDE_FLAGS) $(GLIB_CFLAGS) -fPIC -c -o $@ $<
 
-test-inari-blue: test-inari-blue.c plugin.c
+test-inari-blue: test-inari-blue.c plugin.c compat/core-dbus.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NGF_INCLUDE_FLAGS) $(TEST_CFLAGS) $(LDFLAGS) -o $@ test-inari-blue.c $(TEST_LIBS)
 
 check: test-inari-blue

@@ -31,9 +31,9 @@ affect other sinks. The plugin never auto-activates the player service.
 ## Standalone build
 
 Requires the public ngfd plugin development headers (`ngf-plugin.pc`), GLib,
-D-Bus and MCE development files. Older ngfd development packages omit
-`core-dbus.h`; apply `integration/ngfd-devel.patch` and use that corrected
-development package. Check is required for the mocked tests.
+D-Bus and MCE development files. The omitted `core-dbus.h` is bundled unchanged
+in `compat/`, so stock ngfd development packages are sufficient. Check is
+required for the mocked tests.
 
 ```
 make -C ngfd
@@ -43,7 +43,11 @@ make -C ngfd install DESTDIR=/tmp/inari-root LIBDIR=/usr/lib64
 
 The plugin resolves ngfd's public symbols in the running daemon. Do not pass the
 libtool-only flags from `ngf-plugin.pc` to the compiler. The Makefile uses its
-include flags and links GLib/D-Bus normally. The headers are not vendored.
+include flags and links GLib/D-Bus normally. Only `core-dbus.h` is vendored,
+from sailfishos/ngfd commit `3372625`, preserving its LGPL-2.1-or-later notice.
+It declares existing runtime symbols; no ngfd implementation is bundled. Check
+this header against upstream when changing the supported ngfd baseline.
+`integration/ngfd-devel.patch` remains an optional upstream packaging suggestion.
 
 Tests include the plugin source with mocked ngfd/D-Bus entry points. They need no
 running daemon or hardware. For cross builds, build `test-inari-blue` and run it

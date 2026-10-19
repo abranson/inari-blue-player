@@ -12,7 +12,7 @@
 #include <string.h>
 #include <dbus/dbus.h>
 #include <mce/dbus-names.h>
-#include <ngf/core-dbus.h>
+#include "compat/core-dbus.h"
 #include <ngf/event.h>
 #include <ngf/plugin.h>
 #include <ngf/sinkinterface.h>

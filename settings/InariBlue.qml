@@ -20,23 +20,23 @@ Item {
 
     readonly property var categories: [
         //% "Idle"
-        { key: "idle", label: qsTrId("settings_sounds-inari_blue-idle") },
+        { key: "idle", label: qsTr("Idle") },
         //% "Ringtone"
-        { key: "ringtone", label: qsTrId("settings_sounds-inari_blue-ringtone") },
+        { key: "ringtone", label: qsTr("Ringtone") },
         //% "Internet call"
-        { key: "internet-call", label: qsTrId("settings_sounds-inari_blue-internet_call") },
+        { key: "internet-call", label: qsTr("Internet call") },
         //% "Message"
-        { key: "message", label: qsTrId("settings_sounds-inari_blue-message") },
+        { key: "message", label: qsTr("Message") },
         //% "Chat"
-        { key: "chat", label: qsTrId("settings_sounds-inari_blue-chat") },
+        { key: "chat", label: qsTr("Chat") },
         //% "Email"
-        { key: "email", label: qsTrId("settings_sounds-inari_blue-email") },
+        { key: "email", label: qsTr("Email") },
         //% "Clock alarm"
-        { key: "clock", label: qsTrId("settings_sounds-inari_blue-clock") },
+        { key: "clock", label: qsTr("Clock alarm") },
         //% "Calendar"
-        { key: "calendar", label: qsTrId("settings_sounds-inari_blue-calendar") },
+        { key: "calendar", label: qsTr("Calendar") },
         //% "Other notifications"
-        { key: "other", label: qsTrId("settings_sounds-inari_blue-other") }
+        { key: "other", label: qsTr("Other notifications") }
     ]
 
     function applyState(json) {
@@ -91,7 +91,7 @@ Item {
                 return patterns[i].name
         }
         //% "None"
-        return qsTrId("settings_sounds-inari_blue-none")
+        return qsTr("None")
     }
 
     function choosePattern(category, label) {
@@ -112,7 +112,7 @@ Item {
                     loadingState = false
                     if (!accepted) {
                         //% "Could not save the pattern"
-                        serviceError = qsTrId("settings_sounds-inari_blue-save_failed")
+                        serviceError = qsTr("Could not save the pattern")
                     }
                 }, callFailed)
             })
@@ -146,9 +146,9 @@ Item {
             checked: root.lightsEnabled
             enabled: !root.loadingState && !root.blocked
             //% "Inari Blue lights"
-            text: qsTrId("settings_sounds-inari_blue-enable")
+            text: qsTr("Inari Blue lights")
             //% "Use the notification light patterns"
-            description: qsTrId("settings_sounds-inari_blue-enable_description")
+            description: qsTr("Use the notification light patterns")
             onClicked: root.setEnabled(!root.lightsEnabled)
         }
 

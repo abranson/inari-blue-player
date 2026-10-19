@@ -1,6 +1,6 @@
 Name:       inari-blue-player
 Version:    0.1.0
-Release:    6
+Release:    7
 Summary:    Native Inari Blue pattern playback service
 License:    BSD-3-Clause
 Source0:    %{name}-%{version}.tar.gz

@@ -52,13 +52,13 @@ Dialog {
             if (!accepted) {
                 previewRequested = false
                 //% "Could not preview the pattern"
-                errorText = qsTrId("settings_sounds-inari_blue-preview_failed")
+                errorText = qsTr("Could not preview the pattern")
             }
         }, function() {
             if (generation === previewGeneration) {
                 previewRequested = false
                 //% "The Inari Blue player is unavailable"
-                errorText = qsTrId("settings_sounds-inari_blue-unavailable")
+                errorText = qsTr("The Inari Blue player is unavailable")
             }
         })
     }
@@ -100,12 +100,12 @@ Dialog {
                     previewOnActive = true
             } catch (e) {
                 //% "Invalid pattern file"
-                errorText = qsTrId("settings_sounds-inari_blue-invalid_file")
+                errorText = qsTr("Invalid pattern file")
             }
         }, function() {
             if (generation === selectionGeneration) {
                 validating = false
-                errorText = qsTrId("settings_sounds-inari_blue-unavailable")
+                errorText = qsTr("The Inari Blue player is unavailable")
             }
         })
     }
@@ -123,7 +123,7 @@ Dialog {
                 if (previewRequested || previewing) stopPreview()
             }
         } catch (e) {
-            errorText = qsTrId("settings_sounds-inari_blue-unavailable")
+            errorText = qsTr("The Inari Blue player is unavailable")
         }
     }
 
@@ -143,7 +143,7 @@ Dialog {
         FilePickerPage {
             nameFilters: ["*.json"]
             //% "Select pattern file"
-            title: qsTrId("settings_sounds-inari_blue-select_file")
+            title: qsTr("Select pattern file")
             onSelectedContentPropertiesChanged: {
                 if (selectedContentProperties && selectedContentProperties.filePath)
                     patternDialog.selectFile(selectedContentProperties.filePath)
@@ -164,7 +164,7 @@ Dialog {
             PatternItem {
                 title: patternDialog.activePatternName
                 //% "Current pattern"
-                subtitle: qsTrId("settings_sounds-inari_blue-current_pattern")
+                subtitle: qsTr("Current pattern")
                 icon: "image://theme/icon-m-pause"
                 iconOpacity: patternDialog.previewing && !patternDialog.selectedFile && patternDialog.selectedPattern === patternDialog.activePattern ? 1 : 0
                 enabled: !patternDialog.blocked && patternDialog.present
@@ -192,7 +192,7 @@ Dialog {
                     anchors.verticalCenter: parent.verticalCenter
                     color: selectFromFile.down ? Theme.highlightColor : Theme.primaryColor
                     //% "Select from file"
-                    text: qsTrId("settings_sounds-inari_blue-select_from_file")
+                    text: qsTr("Select from file")
                 }
             }
             PatternItem {
@@ -200,7 +200,7 @@ Dialog {
                 height: visible ? implicitHeight : 0
                 title: patternDialog.selectedName
                 //% "Selected file"
-                subtitle: qsTrId("settings_sounds-inari_blue-selected_file")
+                subtitle: qsTr("Selected file")
                 selected: true
                 icon: "image://theme/icon-m-pause"
                 iconOpacity: patternDialog.previewing ? 1 : 0
@@ -209,7 +209,7 @@ Dialog {
             }
             TextSwitch {
                 //% "None"
-                text: qsTrId("settings_sounds-inari_blue-none")
+                text: qsTr("None")
                 automaticCheck: false
                 checked: !patternDialog.selectedFile && patternDialog.selectedPattern === "off"
                 enabled: !patternDialog.blocked && patternDialog.present
@@ -249,10 +249,10 @@ Dialog {
                 color: patternDialog.blocked ? Theme.secondaryColor : Theme.errorColor
                 text: patternDialog.blocked
                       ? //% "Disabled by privacy mode"
-                        qsTrId("settings_sounds-inari_blue-privacy_disabled")
+                        qsTr("Disabled by privacy mode")
                       : (!patternDialog.present
                          ? //% "Attach Inari Blue to preview patterns"
-                           qsTrId("settings_sounds-inari_blue-cover_missing")
+                           qsTr("Attach Inari Blue to preview patterns")
                          : patternDialog.errorText)
             }
             Item { width: 1; height: Theme.paddingLarge }

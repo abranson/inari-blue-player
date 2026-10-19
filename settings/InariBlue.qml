@@ -157,6 +157,7 @@ Item {
             source: Qt.resolvedUrl("../PrivacySwitchItem.qml")
             onLoaded: {
                 item.label = qsTr("Disable with privacy switch")
+                item.iconSource = "image://theme/icon-m-incognito"
                 item.description = qsTr("Turn off Inari Blue while privacy mode is active")
             }
         }

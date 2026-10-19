@@ -7,6 +7,7 @@ Item {
 
     property string label: qsTr("Disable Inari Blue")
     property string description
+    property url iconSource: "image://theme/icon-m-notifications"
     property bool present
     property bool usePrivacySwitch: true
     property bool busy: true
@@ -34,7 +35,7 @@ Item {
             //% "Disable Inari Blue"
             text: root.label
             description: root.description
-            icon.source: "image://theme/icon-m-notifications"
+            icon.source: root.iconSource
             automaticCheck: false
             checked: root.usePrivacySwitch
             enabled: !root.busy

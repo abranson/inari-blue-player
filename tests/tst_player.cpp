@@ -289,10 +289,11 @@ void PlayerTest::transientFilePreviewSurvivesReloadWithoutCatalogOrEnablement()
     QTemporaryDir directory;
     const QString source = writeTestFile(directory.path(), "source.json", testPattern().replace("\"source\"", "\"off\""));
     std::unique_ptr<Player> testPlayer(player(&directory));
+    const auto originalCatalogue = state(testPlayer.get()).value("patterns").toArray();
     QVERIFY(testPlayer->PreviewFile(source, 500));
     QVERIFY(!state(testPlayer.get()).value("enabled").toBool());
     QVERIFY(state(testPlayer.get()).value("preview").toBool());
-    QCOMPARE(state(testPlayer.get()).value("patterns").toArray().size(), 12);
+    QCOMPARE(state(testPlayer.get()).value("patterns").toArray(), originalCatalogue);
     testPlayer->ReloadPatterns();
     QVERIFY(state(testPlayer.get()).value("preview").toBool());
     QCOMPARE(state(testPlayer.get()).value("playing").toString(), QString("preview-file"));

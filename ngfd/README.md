@@ -47,7 +47,7 @@ include flags and links GLib/D-Bus normally. Only `core-dbus.h` is vendored,
 from sailfishos/ngfd commit `3372625`, preserving its LGPL-2.1-or-later notice.
 It declares existing runtime symbols; no ngfd implementation is bundled. Check
 this header against upstream when changing the supported ngfd baseline.
-`integration/ngfd-devel.patch` remains an optional upstream packaging suggestion.
+Exporting that header upstream remains an optional packaging improvement.
 
 Tests include the plugin source with mocked ngfd/D-Bus entry points. They need no
 running daemon or hardware. For cross builds, build `test-inari-blue` and run it

@@ -15,3 +15,6 @@
 /ngfd/test-inari-blue
 
 /ngfd/__pycache__/
+
+# Local proposals can include context from separately licensed platform code.
+/integration/

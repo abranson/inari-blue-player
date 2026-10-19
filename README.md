@@ -16,7 +16,7 @@ pattern editor, notification watcher, app override or contacts access.
 | `ngfd/` | Independently built notification sink and its mocked tests |
 | `tests/` | Player, pattern, hardware, keepalive and D-Bus tests |
 | `rpm/` | Player and standalone ngfd plugin package definitions |
-| `integration/` | Small patches and baseline information for existing Sailfish components |
+| `docs/integration.md` | Optional upstream improvements and package transition notes |
 
 All Inari-specific implementation lives here. Settings discovers our package's
 entry manifest and loads the independent Inari Blue page. No Settings source
@@ -25,7 +25,7 @@ privacy option; the optional central Privacy settings hook exposes the same
 setting. The plugin RPM manages its optional-plugin configuration entry on
 installation and removal. A bundled upstream header allows builds against stock
 ngfd development packages. No patched system packages are needed. See
-[integration and package transition](integration/README.md).
+[integration and package transition](docs/integration.md).
 
 ## Patterns and configuration
 
@@ -93,4 +93,4 @@ read notification content or change the main LED's behavior.
 
 The native player and new QML use the repository's BSD-3-Clause license.
 The extracted ngfd plugin retains its LGPL-2.1-or-later license and notices in
-`ngfd/COPYING`. Integration patches retain the licensing of their target projects.
+`ngfd/COPYING`. Dependencies retain their own licences; external patch proposals are not tracked.

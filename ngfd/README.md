@@ -52,3 +52,31 @@ this header against upstream when changing the supported ngfd baseline.
 Tests include the plugin source with mocked ngfd/D-Bus entry points. They need no
 running daemon or hardware. For cross builds, build `test-inari-blue` and run it
 on the matching target; `install-tests` is separate from normal installation.
+
+## Package configuration lifecycle
+
+The RPM uses a Python 3 standard-library helper (`python3-base`, already part of
+Sailfish) to add `inari-blue` to `[general] plugins-optional` in the effective
+configuration: `/etc/ngfd/ngfd.ini` if present, otherwise
+`/usr/share/ngfd/ngfd.ini`. It preserves other bytes, permissions, ownership and
+extended attributes. It rejects ambiguous duplicate groups/keys and symlinks.
+
+Ownership of additions is recorded under `/var/lib/ngfd-plugin-inari-blue`.
+An entry already supplied by the distribution or administrator is not owned or
+removed. Final uninstall removes only our addition and preserves later edits;
+upgrades keep it enabled. A trigger reapplies it after updates of
+`ngfd-settings-sailfish`. Active user-session ngfd services are restarted after
+installation or removal; inactive services stay inactive. This briefly interrupts
+active feedback. No player assignments or privacy settings are changed.
+
+This deliberately edits a file belonging to the configuration package, so its
+RPM verification may report that one file as modified. It does not replace the
+system package. An administrator creating/replacing `/etc/ngfd/ngfd.ini` outside
+RPM after installation should run
+`/usr/libexec/ngfd-plugin-inari-blue-config install` and then its `restart`
+action. Custom `NGF_CONF_PATH`/`NGF_USER_CONF_PATH` environments are not managed.
+
+Run `python3 ngfd/test-manage-config.py` for filesystem lifecycle regressions.
+The tests use temporary roots and never alter the host configuration or services.
+The upstream config patch remains a cleaner permanent-distribution integration:
+when the optional entry is present before installation, no helper edit is needed.

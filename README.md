@@ -22,9 +22,10 @@ All Inari-specific implementation lives here. Settings discovers our package's
 entry manifest and loads the independent Inari Blue page. No Settings source
 changes or private audio components are required. The page includes its own
 privacy option; the optional central Privacy settings hook exposes the same
-setting. Feedback configuration lists the optional plugin. ngfd needs only a
-packaging fix to export an existing development header, with no runtime code
-changes. See [integration and package transition](integration/README.md).
+setting. The plugin RPM manages its optional-plugin configuration entry on
+installation and removal. A bundled upstream header allows builds against stock
+ngfd development packages. No patched system packages are needed. See
+[integration and package transition](integration/README.md).
 
 ## Patterns and configuration
 

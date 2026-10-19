@@ -1,6 +1,7 @@
 PREFIX ?= /usr
 LIBDIR ?= $(PREFIX)/lib
 PLUGIN_DIR ?= $(LIBDIR)/ngf
+LIBEXECDIR ?= $(PREFIX)/libexec
 TESTDIR ?= /opt/tests/ngfd-plugin-inari-blue
 
 CC ?= cc
@@ -15,7 +16,7 @@ TEST_LIBS := $(shell $(PKG_CONFIG) --libs check glib-2.0 dbus-1 mce)
 
 CFLAGS ?= -O2 -Wall -Wextra
 
-.PHONY: all check install install-tests clean uninstall
+.PHONY: all check check-config install install-tests clean uninstall
 
 all: libngfd_inari-blue.so
 
@@ -28,16 +29,23 @@ plugin.o: plugin.c compat/core-dbus.h
 test-inari-blue: test-inari-blue.c plugin.c compat/core-dbus.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) $(NGF_INCLUDE_FLAGS) $(TEST_CFLAGS) $(LDFLAGS) -o $@ test-inari-blue.c $(TEST_LIBS)
 
-check: test-inari-blue
+check-config:
+	python3 test-manage-config.py
+
+check: test-inari-blue check-config
 	./test-inari-blue
 
 install: all
+	install -D -m 0755 manage-config.py $(DESTDIR)$(LIBEXECDIR)/ngfd-plugin-inari-blue-config
 	install -D -m 0755 libngfd_inari-blue.so $(DESTDIR)$(PLUGIN_DIR)/libngfd_inari-blue.so
 
 install-tests: test-inari-blue
+	install -D -m 0644 test-manage-config.py $(DESTDIR)$(TESTDIR)/test-manage-config.py
 	install -D -m 0755 test-inari-blue $(DESTDIR)$(TESTDIR)/test-inari-blue
 
 uninstall:
+	rm -f $(DESTDIR)$(LIBEXECDIR)/ngfd-plugin-inari-blue-config
+	rm -f $(DESTDIR)$(TESTDIR)/test-manage-config.py
 	rm -f $(DESTDIR)$(PLUGIN_DIR)/libngfd_inari-blue.so
 	rm -f $(DESTDIR)$(TESTDIR)/test-inari-blue
 

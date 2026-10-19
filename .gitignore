@@ -13,3 +13,5 @@
 /ngfd/*.o
 /ngfd/*.so
 /ngfd/test-inari-blue
+
+/ngfd/__pycache__/

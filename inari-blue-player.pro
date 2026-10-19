@@ -18,7 +18,9 @@ toh.path = /usr/share/tohd-1/tohs/0001/0004
 toh.files = data/inari-player.yaml
 privacyui.path = /usr/share/inari-blue
 privacyui.files = data/PrivacySwitchItem.qml
-INSTALLS += target patterns service dbusservice toh privacyui
+settingsui.path = /usr/share/inari-blue/settings
+settingsui.files = settings/*.qml
+INSTALLS += target patterns service dbusservice toh privacyui settingsui
 
 SOURCES += src/aw2023.cpp src/keepalive.cpp
 HEADERS += src/aw2023.h src/keepalive.h

@@ -1,17 +1,30 @@
-# Inari Blue player
+# Inari Blue native integration
 
-A fresh native SailfishOS service for the three-channel AW2023 Inari Blue cover.
-Patterns are data, selected per feedback category in Sounds and feedback.
-There is no standalone application, editor, notification watcher, app override,
-or contacts access.
+Native SailfishOS feedback for the three-channel AW2023 Inari Blue cover.
+This repository owns the player, pattern files, Sounds and feedback controls,
+privacy control and ngfd notification plugin. There is no standalone application,
+pattern editor, notification watcher, app override or contacts access.
 
-## Components
+## Source layout
 
-* This repository: Qt 5.6/C++11 playback service, validated JSON pattern catalogue,
-  private category assignments, Symbiosis I²C access, platform privacy switch.
-* `ui-jolla-settings-system`: Sounds page section after Tones, visible only for
-  the detected Inari Blue (vendor 1, product 4).
-* `ngfd`: optional Inari Blue LED sink tied to feedback requests.
+| Directory | Purpose |
+| --- | --- |
+| `src/` | Qt 5.6/C++11 player, JSON pattern engine, hardware access and D-Bus API |
+| `patterns/` | Bundled declarative patterns |
+| `settings/` | Sounds section, ringtone-style picker, previews and file import |
+| `data/` | Service activation, cover permissions and privacy control |
+| `ngfd/` | Independently built notification sink and its mocked tests |
+| `tests/` | Player, pattern, hardware, keepalive and D-Bus tests |
+| `rpm/` | Player and standalone ngfd plugin package definitions |
+| `integration/` | Small patches and baseline information for existing Sailfish components |
+
+All Inari-specific implementation lives here. Existing Settings loads the optional
+Sounds component and exports its existing audio selection row. Privacy settings
+loads the optional privacy component. Feedback configuration lists the optional
+plugin. The ngfd daemon itself needs no source changes. See
+[integration and package transition](integration/README.md).
+
+## Patterns and configuration
 
 Patterns live in `/usr/share/inari-blue/patterns` and
 `$XDG_DATA_HOME/inari-blue/patterns` (normally `~/.local/share/inari-blue/patterns`).
@@ -20,42 +33,60 @@ reloads after filesystem changes. See [format](docs/pattern-format.md) and
 [D-Bus interface](docs/dbus.md).
 
 Settings live independently in `$XDG_CONFIG_HOME/inari-blue/settings.json`.
-A new installation defaults to disabled with all categories Off. The old
-notifier's configuration and consent are never read or changed.
+A new installation defaults to disabled with all categories set to None (the
+reserved pattern ID is `off`). Notification categories assigned None do not
+create a player event. The old notifier's configuration is never imported.
 
 ## Build and test
 
-Use qmake and make for `inari-blue-player.pro`. Tests use
-`tests/pattern-tests.pro` and `tests/player-tests.pro`, each in a separate build
-directory. The RPM spec also cross-compiles both tests; they must be executed on
-the target architecture separately. Host simulation:
+The player uses `qmake inari-blue-player.pro` and `make`. Each test project under
+`tests/` builds in a separate directory; see [tests](tests/README.md).
+The RPM spec cross-compiles pattern, player, hardware and keepalive tests for
+execution on the target architecture.
+
+The ngfd plugin uses `make -C ngfd` and the installed public `ngf-plugin` headers;
+it does not require an ngfd source checkout. Run its tests with
+`make -C ngfd check`. Cross-compiled tests must run on the target architecture.
+See [plugin build instructions](ngfd/README.md).
+
+Build the two RPM specs explicitly from this repository:
+
+* `rpm/inari-blue-player.spec`: player, patterns and QML; separate test subpackage.
+* `rpm/ngfd-plugin-inari-blue.spec`: ngfd plugin; separate test subpackage.
+
+Host simulation:
 
 ```
 build/inari-blue-player --simulate --patterns-dir "$PWD/patterns" --config-file /tmp/inari-test-settings.json
 ```
 
 Run simulation inside a private `dbus-run-session`, never on a device's normal
-session. Simulation deliberately substitutes an available cover and clear
-privacy state, and cannot access hardware.
+session. Simulation substitutes an available cover and clear privacy state, and
+cannot access hardware.
 
-## Ownership and deployment
+## Runtime and ownership
 
-Do not run this player alongside the notifier or `toh-leds.service`. Deployment
-must record their initial states, stop the notifier, and mask the stock breathing
-service before enabling this user service. Installation alone does not enable or
-start it. Preserve the old configuration for rollback; do not uninstall the old
-packages until native integration is accepted. Symbiosis must reload its cover
-configuration before granting the new executable access.
+Compatible breathing patterns are lowered to autonomous AW2023 programs.
+Other patterns use a monotonic timeline with 10 ms sampling and renewed MCE
+keepalive leases; missed frames do not shift the timeline. Linear fades describe
+PWM values; visible brightness also depends on the controller and optical bleed.
 
-Privacy is mandatory: an active or unavailable platform privacy service blocks
-all output, including previews. Releasing I²C disables the chip and returns the
-loan. Cover removal and service owner changes are observed through D-Bus.
+Do not run this player alongside the old notifier or `toh-leds.service`. Stop
+other LED owners and mask the stock breathing service before enabling this user
+service. Installation alone does not enable or start it. Symbiosis must reload
+its cover configuration before granting the executable access.
 
-## Current implementation limits
+The configurable privacy option defaults to enabled. With that option enabled,
+an active or unavailable privacy service blocks output, including previews.
+Releasing I2C disables the chip and returns the loan. Cover removal and service
+owner changes are observed through D-Bus.
 
-Playback currently evaluates the declarative timeline in software, using a
-monotonic clock and 10 ms sampling; missed frames do not shift the timeline.
-The hardware's autonomous breathing optimisation and suspend-aware software
-playback are not yet implemented. Do not claim screen-off/suspend reliability
-until these are validated on a device. Linear fades describe PWM values; visible
-brightness also depends on the controller and optical bleed.
+The ngfd plugin follows resolved notification categories and main LED lifetime;
+repeating alarms and calls follow their feedback request lifetime. It does not
+read notification content or change the main LED's behavior.
+
+## Licensing
+
+The native player and new QML use the repository's BSD-3-Clause license.
+The extracted ngfd plugin retains its LGPL-2.1-or-later license and notices in
+`ngfd/COPYING`. Integration patches retain the licensing of their target projects.
